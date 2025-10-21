@@ -36,5 +36,13 @@ public class RunOnUpload implements CloudEventsFunction {
     @Override
     public void accept(CloudEvent event) throws Exception {
         System.out.println("Received event " + event.getId());
+        String eventType = event.getType();
+        switch(eventType) {
+            case "google.cloud.storage.object.v1.finalized":
+                System.out.println("Finalized event");
+                break;
+            default:
+                System.out.println("Received unknown event type: " + eventType);
+        }
     }
 }
