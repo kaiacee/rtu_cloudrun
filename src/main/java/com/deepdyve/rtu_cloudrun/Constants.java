@@ -12,7 +12,7 @@ public class Constants {
     public static String mqSubjectOut;
     public static String CONFIG = "config.file";
 
-    static {
+    public static void init() {
         String s = System.getProperty(CONFIG);
         if (s == null) {
             s = "cloudrun.properties";  // normal
