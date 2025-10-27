@@ -67,3 +67,10 @@ To test locally:
 <br>--vpc-connector cloud-func-to-internal \
 --vpc-egress all-traffic \
 
+**Datastore**
+Uses <locator>https://console.cloud.google.com/datastore/databases</locator>
+default datastore database to hold dependencies for multiple linked file uploads
+e.g. for jama (_xml and _pdf zips)
+<br>Firestore with Datastore compatibility
+<br>Please note that TTL policy is configured for this 
+
