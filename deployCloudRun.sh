@@ -32,7 +32,6 @@ if [[ "$eventarc" != "true"  ]]; then
 	#build docker image - note: cloudrun is amd64
 	docker buildx build --platform linux/amd64 -t $container/dd-production/$repo/$appname:latest -f dockerfiles/Dockerfile$dtype .
 
-  exit -1
 	#push docker image to repository
 	docker push $container/dd-production/$repo/$appname:latest
 
@@ -46,6 +45,9 @@ if [[ "$eventarc" != "true"  ]]; then
   	--allow-unauthenticated
 fi
 if [[ "$eventarc" == "true"  ]]; then
+	if [[ "$verb" == "create" ]]; then # delete existing first
+		gcloud eventarc triggers delete gcs-trigger --location=us-west2
+	fi
 	#Eventarc triggers remain intact until you explicitly delete or modify them.
 	#change only when event routing changes
 	gcloud eventarc triggers $verb gcs-trigger \

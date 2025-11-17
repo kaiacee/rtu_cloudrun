@@ -47,7 +47,11 @@ https://console.cloud.google.com/artifacts/browse/dd-production
 
 <br>**More Notes**
 <br>To change to/from qa:
-1- deployCloudRun.sh [-qa]
+1- deployCloudRun.sh [-qa] [-eventarc [-c]]
+
+
+<br>**TO view existing eventarc triggers**
+<br>https://console.cloud.google.com/run/detail/us-west2/rtu-cloudrun/triggers?project=dd-production
 
 <br>**Docker file configuration**
 ><br>This is tricky as you have to include the Java Invoker.
