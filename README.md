@@ -45,6 +45,10 @@ NAME         TYPE                                      DESTINATION              
 https://console.cloud.google.com/artifacts/browse/dd-production
 <br>look under repo name (above)
 
+<br>**More Notes**
+<br>To change to/from qa:
+1- deployCloudRun.sh [-qa]
+
 <br>**Docker file configuration**
 ><br>This is tricky as you have to include the Java Invoker.
 <br>The Java Invoker is an HTTP server that forwards requests to your function.
@@ -73,4 +77,5 @@ default datastore database to hold dependencies for multiple linked file uploads
 e.g. for jama (_xml and _pdf zips)
 <br>Firestore with Datastore compatibility
 <br>Please note that TTL policy is configured for this 
+
 

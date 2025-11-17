@@ -1,19 +1,38 @@
+qa=""
+eventarc="false"
+dtype=".prod"
+verb="update"
+if [[ "$#" -ge 1 ]]; then
+	for ((i=1;i<=$#;i++));  do
+		curarg="${!i}"
+		if [ "$curarg" == "-qa" ]; then
+			qa="_qa"
+			dtype=""
+			echo "QA chosen"
+		elif [ "$curarg" == "-eventarc" ]; then
+		  eventarc=true
+			echo "Creating or Updating Eventarc"
+		elif [ "$curarg" == "-c" ]; then
+			verb=create
+			echo "Creating new eventarc"
+		fi
+	done
+fi
+
+
+
 container=us-west2-docker.pkg.dev
-repo=cloud-run-source-deploy  
+repo=cloud-run-source-deploy
 appname=rtu_cloudrun
 servicename=rtu-cloudrun
-if [[ "$1" == "eventarc" ]]; then
-	eventarc=true
-	bucket=rt-upload-staging_qa
-	verb="update"
-	if [[ "$2" == "create" ]]; then
-		verb="create"
-	fi
+if [[ "$eventarc" == "true" ]]; then
+	bucket=rt-upload-staging$qa
 fi
 if [[ "$eventarc" != "true"  ]]; then
 	#build docker image - note: cloudrun is amd64
-	docker buildx build --platform linux/amd64 -t $container/dd-production/$repo/$appname:latest -f dockerfiles/Dockerfile .
+	docker buildx build --platform linux/amd64 -t $container/dd-production/$repo/$appname:latest -f dockerfiles/Dockerfile$dtype .
 
+  exit -1
 	#push docker image to repository
 	docker push $container/dd-production/$repo/$appname:latest
 
