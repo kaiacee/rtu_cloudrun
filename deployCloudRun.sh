@@ -1,13 +1,13 @@
 container=us-west2-docker.pkg.dev
 repo=cloud-run-source-deploy  
 appname=rtu_cloudrun
-servicename=rtu-cloudrun-test-deux
+servicename=rtu-cloudrun
 if [[ "$1" == "eventarc" ]]; then
 	eventarc=true
 	bucket=rt-upload-staging_qa
-	verb="create"
-	if [[ "$2" == "update" ]]; then
-		verb="update"
+	verb="update"
+	if [[ "$2" == "create" ]]; then
+		verb="create"
 	fi
 fi
 if [[ "$eventarc" != "true"  ]]; then
