@@ -1,10 +1,14 @@
 container=us-west2-docker.pkg.dev
 repo=cloud-run-source-deploy  
 appname=rtu_cloudrun
-servicename=rtu-cloudrun
+servicename=rtu-cloudrun-test-deux
 if [[ "$1" == "eventarc" ]]; then
 	eventarc=true
 	bucket=rt-upload-staging_qa
+	verb="create"
+	if [[ "$2" == "update" ]]; then
+		verb="update"
+	fi
 fi
 if [[ "$eventarc" != "true"  ]]; then
 	#build docker image - note: cloudrun is amd64
@@ -25,7 +29,7 @@ fi
 if [[ "$eventarc" == "true"  ]]; then
 	#Eventarc triggers remain intact until you explicitly delete or modify them.
 	#change only when event routing changes
-	gcloud eventarc triggers create gcs-trigger \
+	gcloud eventarc triggers $verb gcs-trigger \
   --destination-run-service=$servicename \
   --destination-run-region=us-west2 \
   --event-filters="type=google.cloud.storage.object.v1.finalized" \

@@ -63,6 +63,14 @@ public class MQProcessor {
         return false;
     }
 
+    public static String formatMessage(String p, String t) {
+        if (t != null) {
+            t = t.trim();
+        }
+        return p.trim() + "~" + t;
+    }
+
+
     public void close() {
         if (nc != null) {
             try {

@@ -35,9 +35,24 @@ public class RunOnUpload implements CloudEventsFunction {
         } catch (Exception e) {
             throw new RuntimeException(e);
        }
+        /* to note: scrapes (not included in watches)
+            berhahn, asbmb, cob, arxiv
+            chi, plos_journal, chemrxiv, medrxiv, springer_pubs
+            ajnr, du_press, rockefeller, ejtr
+
+            sftp/iop/incoming is old and can be removed
+         */
+        /* Q's:
+            2 allen press FTPs, both seem to be getting content !
+            cclh -- active ?
+            aacr -- active ?
+            iwa ??
+            aacc ?
+            ou_press has an SFTP site but its not used !
+         */
         watches = new ArrayList<>();
         watches.add("aea");
-        watches.add("ers");
+        watches.add("acm");
         watches.add("allen_press");
         watches.add("ams");
         watches.add("aps");
@@ -45,17 +60,19 @@ public class RunOnUpload implements CloudEventsFunction {
         watches.add("brill");
         watches.add("bioscientifica");
         watches.add("cabi");
-        watches.add("acm");
+        // cclh?
         watches.add("csiro");
         watches.add("cup");
         watches.add("cu_press");
         watches.add("degruyter");
         watches.add("emerald");
         watches.add("emerald_books");
+        watches.add("ers");
         watches.add("guilford");
         watches.add("inderscience");
         watches.add("informs");
-        watches.add("iop");
+        watches.add("iop2");
+        watches.add("iop_books");
         watches.add("karger");
         watches.add("kli");
         watches.add("mag");
@@ -74,11 +91,12 @@ public class RunOnUpload implements CloudEventsFunction {
         watches.add("sj_ebooks");
         watches.add("taylor_francis");
         watches.add("uchi_press");
+        watches.add("uc_press");
+        watches.add("unc_press");
         watches.add("utp");
         watches.add("wiley");
         watches.add("wiley_books");
         watches.add("wolters_kluwer");
-        watches.add("uc_press");
         watches.add("wspc");
         watchesWithDependencies = new HashMap<>();
         watchesWithDependencies.put("jama", new Dependencies('_',"_xml.zip", "_xml.zip", "_pdf.zip"));
@@ -156,7 +174,7 @@ public class RunOnUpload implements CloudEventsFunction {
                             Dependencies.deleteAllNames(ds, rootKey);
                         }
                     }
-                    System.out.println("... sending to " + mqSubjectOut);
+                    System.out.println("... sending " + name + " to " + mqSubjectOut);
                     mqProcessor.sendMessage(mqSubjectOut, name);
                 } else {
                     try {
