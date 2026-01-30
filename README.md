@@ -12,6 +12,7 @@ the Functions Framework must start the HTTP server (injects HTTP requests and Cl
 into the **accept** method).  The FunctionsFramework is a Java library that your 
 application depends on and starts the HTTP server automatically.
 
+**General Steps**
 - Step 1- build **docker** image
     - Note that must include both jars e.g. "-cp", "java-function-invoker-1.4.1.jar:rtu_cloudrun-1.0-SNAPSHOT-jar-with-dependencies.jar"
 - Step 2- push to **artifact repository** (container=us-west2-docker.pkg.dev)
@@ -45,6 +46,15 @@ NAME         TYPE                                      DESTINATION              
 https://console.cloud.google.com/artifacts/browse/dd-production
 <br>look under repo name (above)
 
+
+<br>See **deployCloudRun.sh**
+**- options:**
+- -qa         -- uses qa staging bucket and qa nats
+- -qaprod    -- uses qa staging bucket and production nats
+- -eventarc  -- creates or updates the eventarc trigger handler - do AFTER deployment
+  <br>
+
+
 <br>**More Notes**
 <br>To change to/from qa:
 1- deployCloudRun.sh [-qa] [-eventarc [-c]]
@@ -52,6 +62,12 @@ https://console.cloud.google.com/artifacts/browse/dd-production
 
 <br>**TO view existing eventarc triggers**
 <br>https://console.cloud.google.com/run/detail/us-west2/rtu-cloudrun/triggers?project=dd-production
+
+<br>**SFTP**</br>
+- 22 is the old, but secure sftp
+- 21 is the old insecure ftp
+- 2022 is the new, secure, magically transfers items to GCS sftp
+
 
 <br>**Docker file configuration**
 ><br>This is tricky as you have to include the Java Invoker.
@@ -80,6 +96,6 @@ Uses <locator>https://console.cloud.google.com/datastore/databases</locator>
 default datastore database to hold dependencies for multiple linked file uploads
 e.g. for jama (_xml and _pdf zips)
 <br>Firestore with Datastore compatibility
-<br>Please note that TTL policy is configured for this 
+<br>Please note that TTL policy is configured for this
 
 

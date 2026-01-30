@@ -147,7 +147,7 @@ public class RunOnUpload implements CloudEventsFunction {
         switch(eventType) {
             case "google.cloud.storage.object.v1.finalized":
                 if (name != null && !name.isEmpty()) {
-                    System.out.print("Received finalize event for: " + name + " type: " + contentType + " size: " + size );
+                    System.out.println(name + " type: " + contentType + " size: " + size  + "received");
                     if (watchesWithDependencies.containsKey(datasourcekeyname)){
                         Dependencies d = watchesWithDependencies.get(datasourcekeyname);
                         String rootKey = d.getRootFile(name); // this is the filename root we need to match
@@ -157,6 +157,7 @@ public class RunOnUpload implements CloudEventsFunction {
                             System.err.println("RootKey is null for : " + name);
                             return;
                         }
+                        // TODO verbose only!
                         System.out.println(String.format("Dependencies: %s from %s and %s", rootKey, datasourcekeyname, name));
                         Dependencies.addOrUpdateName(ds, rootKey, name);
                         List<String> foundfiles = Dependencies.listNames(ds, rootKey);
@@ -174,7 +175,7 @@ public class RunOnUpload implements CloudEventsFunction {
                             Dependencies.deleteAllNames(ds, rootKey);
                         }
                     }
-                    System.out.println("... sending " + name + " to " + mqSubjectOut);
+                    System.out.println(name + " => " + mqSubjectOut);
                     mqProcessor.sendMessage(mqSubjectOut, name);
                 } else {
                     try {

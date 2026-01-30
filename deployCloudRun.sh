@@ -1,14 +1,21 @@
-qa=""
+bucketSuffix=""   #means prod
 eventarc="false"
-dtype=".prod"
+dockertype=".prod"
+cloudrunServiceSuffix=""
 verb="update"
 if [[ "$#" -ge 1 ]]; then
 	for ((i=1;i<=$#;i++));  do
 		curarg="${!i}"
 		if [ "$curarg" == "-qa" ]; then
-			qa="_qa"
-			dtype=""
+			bucketSuffix="_qa"
+			dockertype="" # means qa
+			cloudrunServiceSuffix="-qa"
 			echo "QA chosen"
+    elif [ "$curarg" == "-qaprod" ]; then
+			bucketSuffix="_qa"
+			dockertype=".prod"
+			cloudrunServiceSuffix="-qaprod"
+			echo "QA staging bucket, PROD processing chosen"
 		elif [ "$curarg" == "-eventarc" ]; then
 		  eventarc=true
 			echo "Creating or Updating Eventarc"
@@ -19,18 +26,21 @@ if [[ "$#" -ge 1 ]]; then
 	done
 fi
 
-
+# For Cloud Run + Eventarc, deploy the Cloud Run service first,
+# then create the Eventarc trigger that points to it.
+# That’s also the order Google’s Cloud Run + Eventarc tutorials use (deploy receiver → create trigger).
+#
 
 container=us-west2-docker.pkg.dev
 repo=cloud-run-source-deploy
 appname=rtu_cloudrun
-servicename=rtu-cloudrun
+servicename=rtu-cloudrun$cloudrunServiceSuffix
 if [[ "$eventarc" == "true" ]]; then
-	bucket=rt-upload-staging$qa
+	bucket=rt-upload-staging$bucketSuffix
 fi
 if [[ "$eventarc" != "true"  ]]; then
 	#build docker image - note: cloudrun is amd64
-	docker buildx build --platform linux/amd64 -t $container/dd-production/$repo/$appname:latest -f dockerfiles/Dockerfile$dtype .
+	docker buildx build --platform linux/amd64 -t $container/dd-production/$repo/$appname:latest -f dockerfiles/Dockerfile$dockertype .
 
 	#push docker image to repository
 	docker push $container/dd-production/$repo/$appname:latest
