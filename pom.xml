@@ -41,10 +41,30 @@
             <artifactId>java-function-invoker</artifactId>
             <version>1.4.1</version>
         </dependency>
+        <!-- google cloud stuff -->
+        <dependency>
+            <groupId>com.google.cloud</groupId>
+            <artifactId>google-cloud-storage</artifactId>
+        </dependency>
 
 
     </dependencies>
-  <build>
+    <!-- google cloud -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>26.50.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
+    <!-- end google cloud -->
+
+    <build>
     <plugins>
         <!-- for testing!
         <plugin>

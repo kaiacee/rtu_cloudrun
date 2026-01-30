@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static com.deepdyve.rtu_cloudrun.Constants.mqSubjectOut;
+import static com.deepdyve.rtu_cloudrun.Constants.*;
 
 public class RunOnUpload implements CloudEventsFunction {
     private static MQProcessor mqProcessor;
@@ -147,7 +147,7 @@ public class RunOnUpload implements CloudEventsFunction {
         switch(eventType) {
             case "google.cloud.storage.object.v1.finalized":
                 if (name != null && !name.isEmpty()) {
-                    System.out.println(name + " type: " + contentType + " size: " + size  + "received");
+                    System.out.println(name /*+ " type: " + contentType*/ + " size: " + size  /*+ " received"*/);
                     if (watchesWithDependencies.containsKey(datasourcekeyname)){
                         Dependencies d = watchesWithDependencies.get(datasourcekeyname);
                         String rootKey = d.getRootFile(name); // this is the filename root we need to match
@@ -175,7 +175,13 @@ public class RunOnUpload implements CloudEventsFunction {
                             Dependencies.deleteAllNames(ds, rootKey);
                         }
                     }
-                    System.out.println(name + " => " + mqSubjectOut);
+                    // TODO: ONLY FOR TESTING PURPOSES - REMOVE WHEN DONE !
+                    if (QA) {   // this is QA-PROD testing and is *only* for initial testing strategies
+                        GCSUtils.gcsMove(gcsQaBucket, name, gcsProdBucket, name);
+                        //System.out.println("TESTING ONLY!! MOVING: " + name + " to " + gcsProdBucket);
+                    }
+                    // TODO: remove mqUrl when done testing
+                    System.out.println("to " + mqSubjectOut + " " + name  + " (" + mqUrl + ")");
                     mqProcessor.sendMessage(mqSubjectOut, name);
                 } else {
                     try {
