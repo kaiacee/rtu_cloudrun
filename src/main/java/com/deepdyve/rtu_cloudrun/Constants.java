@@ -6,6 +6,7 @@ import java.util.Properties;
 
 public class Constants {
     public static boolean QA = false;
+    public static boolean VERBOSE = false;
 
     public static String mqUrl;
     public static String mqStreamName;

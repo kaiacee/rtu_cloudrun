@@ -147,35 +147,39 @@ public class RunOnUpload implements CloudEventsFunction {
         switch(eventType) {
             case "google.cloud.storage.object.v1.finalized":
                 if (name != null && !name.isEmpty()) {
-                    System.out.println(name /*+ " type: " + contentType*/ + " size: " + size  /*+ " received"*/);
+                    System.out.println("Received: " + name /*+ " type: " + contentType*/ + " size: " + size  /*+ " received"*/);
                     if (watchesWithDependencies.containsKey(datasourcekeyname)){
                         Dependencies d = watchesWithDependencies.get(datasourcekeyname);
                         String rootKey = d.getRootFile(name); // this is the filename root we need to match
-                        // TESTING TODO REMOVE PRINTOUTS WHEN DONE
-                        System.out.println("Root: " + rootKey);
+                        if (VERBOSE) {
+                            System.out.println("Root: " + rootKey);
+                        }
                         if (rootKey == null) {
                             System.err.println("RootKey is null for : " + name);
                             return;
                         }
-                        // TODO verbose only!
-                        System.out.println(String.format("Dependencies: %s from %s and %s", rootKey, datasourcekeyname, name));
+                        if (VERBOSE) {
+                            System.out.println(String.format("Dependencies: %s from %s and %s", rootKey, datasourcekeyname, name));
+                        }
                         Dependencies.addOrUpdateName(ds, rootKey, name);
                         List<String> foundfiles = Dependencies.listNames(ds, rootKey);
                         List<String> extensions = new ArrayList<>(d.extensions);
                         for (String f : foundfiles) {
-                            System.out.println("Found dependency file: " + f);
                             extensions.removeIf(extension -> f.endsWith(extension));
                         }
+                        // if don't have required dependency file (via extension match), then wait
                         if (!extensions.isEmpty()) {
-                            System.out.println("... waiting for: " + rootKey + extensions);
+                            if (VERBOSE) {
+                                System.out.println("... waiting for: " + rootKey + extensions);
+                            }
                             return;
                         } else {
-                            System.out.println("... Found all dependencies.  Keyfile = " + d.getKeyFile(foundfiles));
+                            System.out.println("... Found all dependencies.  Keyfile = " + d.getKeyFile(foundfiles) + "=>" + d.getDependentFile(foundfiles));
                             name = d.getKeyFile(foundfiles); // ensure message is only for key file
                             Dependencies.deleteAllNames(ds, rootKey);
                         }
                     }
-                    // TODO: ONLY FOR TESTING PURPOSES - REMOVE WHEN DONE !
+                    // TODO: ONLY FOR TESTING PURPOSES - IMPORTANT REMOVE WHEN DONE !!!!
                     if (QA) {   // this is QA-PROD testing and is *only* for initial testing strategies
                         GCSUtils.gcsMove(gcsQaBucket, name, gcsProdBucket, name);
                         //System.out.println("TESTING ONLY!! MOVING: " + name + " to " + gcsProdBucket);
@@ -219,6 +223,16 @@ public class RunOnUpload implements CloudEventsFunction {
                 }
             }
             System.err.println("Could not find key file: " + files + " (" + keyFileExtension + ")");
+            return null;
+        }
+        // for debugging
+        String getDependentFile(List<String> files) {
+            for (String f : files) {
+                if (extensions.stream().anyMatch(extension -> f.endsWith(extension))) {
+                    return f;
+                }
+            }
+            System.err.println("Could not find dependency file for " + getKeyFile(files));
             return null;
         }
         String getRootFile(String filename) {
