@@ -36,16 +36,16 @@ public class RunOnUpload implements CloudEventsFunction {
             throw new RuntimeException(e);
        }
         /* to note: scrapes (not included in watches)
-            berhahn, asbmb, cob, arxiv
+            berhahn, asbmb, cob, arxiv [crawl0 & 1]
             chi, plos_journal, chemrxiv, medrxiv, springer_pubs
-            ajnr, du_press, rockefeller, ejtr
+            ajnr, du_press, rockefeller, ejtr [crawl3]
 
-            sftp/iop/incoming is old and can be removed
+            sftp/iop/.. sftp/utp/.. sftp/acs/.. can be removed
          */
         /* Q's:
             2 allen press FTPs, both seem to be getting content !
             cclh -- active ?
-            aacr -- active ?
+            aacr -- NOT active
             iwa ??
             aacc ?
             ou_press has an SFTP site but its not used !
@@ -100,7 +100,7 @@ public class RunOnUpload implements CloudEventsFunction {
         watches.add("wspc");
         watchesWithDependencies = new HashMap<>();
         watchesWithDependencies.put("jama", new Dependencies('_',"_xml.zip", "_xml.zip", "_pdf.zip"));
-        watchesWithDependencies.put("iospress", new Dependencies('.', ".xml", ".xml", ".pdf"));
+        // moved to sagewatchesWithDependencies.put("iospress", new Dependencies('.', ".xml", ".xml", ".pdf"));
         watchesWithDependencies.put("imanager",  new Dependencies('.', ".txt",".txt", ".pdf"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -179,11 +179,11 @@ public class RunOnUpload implements CloudEventsFunction {
                             Dependencies.deleteAllNames(ds, rootKey);
                         }
                     }
-                    // TODO: ONLY FOR TESTING PURPOSES - IMPORTANT REMOVE WHEN DONE !!!!
-                    if (QA) {   // this is QA-PROD testing and is *only* for initial testing strategies
-                        GCSUtils.gcsMove(gcsQaBucket, name, gcsProdBucket, name);
+                    // TODO: ONLY FOR QA-PROD TESTING PURPOSES - IMPORTANT REMOVE WHEN DONE !!!!
+                    //if (QA) {   // this is QA-PROD testing and is *only* for initial testing strategies
+                    //    GCSUtils.gcsMove(gcsQaBucket, name, gcsProdBucket, name);
                         //System.out.println("TESTING ONLY!! MOVING: " + name + " to " + gcsProdBucket);
-                    }
+                    //}
                     // TODO: remove mqUrl when done testing
                     System.out.println("to " + mqSubjectOut + " " + name  + " (" + mqUrl + ")");
                     mqProcessor.sendMessage(mqSubjectOut, name);

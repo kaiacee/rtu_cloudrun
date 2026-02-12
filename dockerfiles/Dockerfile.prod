@@ -14,5 +14,5 @@ ENV FUNCTION_TARGET=com.deepdyve.rtu_cloudrun.RunOnUpload
 ENV FUNCTION_SIGNATURE_TYPE=cloudevent
 
 # com.google.cloud.functions.invoker.runner.Invoker. include both jars in classpath
-CMD ["java", "-DMQURL=nats://cops-nats.usw2.infovell.com:4222", "-Dconfig.file=qacloudrun.properties", "-DgcpCredentialsFile=/usr/src/credentials", "-cp", "java-function-invoker-1.4.1.jar:rtu_cloudrun-1.0-SNAPSHOT-jar-with-dependencies.jar",     "com.google.cloud.functions.invoker.runner.Invoker",   "--classpath", "rtu_cloudrun-1.0-SNAPSHOT-jar-with-dependencies.jar", "--target", "com.deepdyve.rtu_cloudrun.RunOnUpload", "--port", "8080"]
+CMD ["java", "-DMQURL=nats://cops-nats.usw2.infovell.com:4222", "-Dconfig.file=cloudrun.properties", "-DgcpCredentialsFile=/usr/src/credentials", "-cp", "java-function-invoker-1.4.1.jar:rtu_cloudrun-1.0-SNAPSHOT-jar-with-dependencies.jar",     "com.google.cloud.functions.invoker.runner.Invoker",   "--classpath", "rtu_cloudrun-1.0-SNAPSHOT-jar-with-dependencies.jar", "--target", "com.deepdyve.rtu_cloudrun.RunOnUpload", "--port", "8080"]
 
