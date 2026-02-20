@@ -7,9 +7,11 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.cloudevents.CloudEvent;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -18,6 +20,8 @@ import static com.deepdyve.rtu_cloudrun.Constants.*;
 public class RunOnUpload implements CloudEventsFunction {
     private static MQProcessor mqProcessor;
     private static Datastore ds = DatastoreOptions.getDefaultInstance().getService(); // uses ADC on Cloud Run
+    private static final String ARCHIVEDATEFORMAT = "yyyyMM";
+
 
         /*
         When your container starts, initializes the application once,
@@ -123,7 +127,7 @@ public class RunOnUpload implements CloudEventsFunction {
         // event.getId() is a UUID
         //System.out.println("Received event " + event.getId()  );
         String name = null, contentType = null, size = null;
-        String datasourcekeyname = null;
+        String datasourcekeyname = null, bucket = null;
         try {
             String j = new String(event.getData().toBytes());
             //TESTING: System.out.println("Received data: " + j);
@@ -139,7 +143,7 @@ public class RunOnUpload implements CloudEventsFunction {
             contentType = jobj.get("contentType").getAsString();
             size = jobj.get("size").getAsString();
             // if we need them
-            //bucket = jobj.get("bucket").getAsString();
+            bucket = jobj.get("bucket").getAsString();
             //created = jobj.get("timeCreated").getAsString();
             //udpated = jobj.get("updated").getAsString();
         } catch (Exception e) {}
@@ -150,6 +154,12 @@ public class RunOnUpload implements CloudEventsFunction {
                     System.out.println("Received: " + name /*+ " type: " + contentType*/ + " size: " + size  /*+ " received"*/);
                     if (watchesWithDependencies.containsKey(datasourcekeyname)){
                         Dependencies d = watchesWithDependencies.get(datasourcekeyname);
+                        if (!isDependencyFile(d, name)) {
+                            String dateSuffix = new SimpleDateFormat(ARCHIVEDATEFORMAT).format(new Date());
+                            String pathOnGCS = datasourcekeyname + "/" + dateSuffix + "/";
+                            moveNonDependencyFile(pathOnGCS + name);
+                            return;
+                        }
                         String rootKey = d.getRootFile(name); // this is the filename root we need to match
                         if (VERBOSE) {
                             System.out.println("Root: " + rootKey);
@@ -159,7 +169,7 @@ public class RunOnUpload implements CloudEventsFunction {
                             return;
                         }
                         if (VERBOSE) {
-                            System.out.println(String.format("Dependencies: %s from %s and %s", rootKey, datasourcekeyname, name));
+                            System.out.printf("Dependencies: %s from %s and %s%n", rootKey, datasourcekeyname, name);
                         }
                         Dependencies.addOrUpdateName(ds, rootKey, name);
                         List<String> foundfiles = Dependencies.listNames(ds, rootKey);
@@ -181,8 +191,8 @@ public class RunOnUpload implements CloudEventsFunction {
                     }
                     // TODO: ONLY FOR QA-PROD TESTING PURPOSES - IMPORTANT REMOVE WHEN DONE !!!!
                     //if (QA) {   // this is QA-PROD testing and is *only* for initial testing strategies
-                    //    GCSUtils.gcsMove(gcsQaBucket, name, gcsProdBucket, name);
-                        //System.out.println("TESTING ONLY!! MOVING: " + name + " to " + gcsProdBucket);
+                    //    GCSUtils.gcsMove(gcsQaBucket, name, gcsStaging, name);
+                        //System.out.println("TESTING ONLY!! MOVING: " + name + " to " + gcsStaging);
                     //}
                     // TODO: remove mqUrl when done testing
                     System.out.println("to " + mqSubjectOut + " " + name  + " (" + mqUrl + ")");
@@ -228,7 +238,7 @@ public class RunOnUpload implements CloudEventsFunction {
         // for debugging
         String getDependentFile(List<String> files) {
             for (String f : files) {
-                if (extensions.stream().anyMatch(extension -> f.endsWith(extension))) {
+                if (extensions.stream().anyMatch(f::endsWith)) {
                     return f;
                 }
             }
@@ -338,6 +348,20 @@ public class RunOnUpload implements CloudEventsFunction {
             } else {
                 System.out.printf("No dependency entities found for %s%n", rootKey);
             }
+        }
+    }
+
+    private static boolean isDependencyFile(Dependencies d, String filename) {
+        return d.extensions.stream().anyMatch(filename::endsWith);
+    }
+
+    private static void moveNonDependencyFile( String name) {
+        try {
+            GCSUtils.gcsMove(gcsStaging, name, gcsArchive, name);
+            System.out.println("NON_DEPENDENCY_MOVE source=gs://" + gcsStaging + "/" + name +
+                    " -> gs://" + gcsArchive + "/" + name);
+        } catch (Exception e) {
+            System.err.println("Failed moving non-dependency file " + name + ": " + e.getMessage());
         }
     }
 }

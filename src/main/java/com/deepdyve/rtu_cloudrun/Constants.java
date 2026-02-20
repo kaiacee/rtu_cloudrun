@@ -14,8 +14,9 @@ public class Constants {
     public static String CONFIG = "config.file";
     public static boolean TESTMODE = false;
     public static String gcpProject;
-    public static String gcsQaBucket;
-    public static String gcsProdBucket;
+    public static String gcsStaging;
+    public static String gcsProdStaging;
+    public static String gcsArchive;
     public static String gcpCredentialsFile;
 
 
@@ -62,10 +63,10 @@ public class Constants {
         mqStreamName = defaults.getProperty("mqStreamName");
         mqSubjectOut = defaults.getProperty("mqSubjectOut");
 
-        // TODO: ALL TESTING - remove when done
         gcpProject = defaults.getProperty("gcpProject");
-        gcsQaBucket = defaults.getProperty("gcsQABucket");
-        gcsProdBucket = defaults.getProperty("gcsProdBucket");
+        gcsStaging = defaults.getProperty("gcsStaging");
+        gcsProdStaging = defaults.getProperty("gcsProdStaging"); /// only for very specific testing !
+        gcsArchive = defaults.getProperty("gcsArchive");
         // system prop only
         if (System.getProperty("gcpCredentialsFile") == null) {
             gcpCredentialsFile = defaults.getProperty("gcpCredentialsFile");
