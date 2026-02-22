@@ -156,8 +156,8 @@ public class RunOnUpload implements CloudEventsFunction {
                         Dependencies d = watchesWithDependencies.get(datasourcekeyname);
                         if (!isDependencyFile(d, name)) {
                             String dateSuffix = new SimpleDateFormat(ARCHIVEDATEFORMAT).format(new Date());
-                            String pathOnGCS = datasourcekeyname + "/" + dateSuffix + "/";
-                            moveNonDependencyFile(pathOnGCS + name);
+                            String pathOnGCS = name.replace("^" + datasourcekeyname, datasourcekeyname + "/" + dateSuffix + "/");
+                            moveNonDependencyFile(name, pathOnGCS);
                             return;
                         }
                         String rootKey = d.getRootFile(name); // this is the filename root we need to match
@@ -355,13 +355,13 @@ public class RunOnUpload implements CloudEventsFunction {
         return d.extensions.stream().anyMatch(filename::endsWith);
     }
 
-    private static void moveNonDependencyFile( String name) {
+    private static void moveNonDependencyFile( String src, String dest) {
         try {
-            GCSUtils.gcsMove(gcsStaging, name, gcsArchive, name);
-            System.out.println("NON_DEPENDENCY_MOVE source=gs://" + gcsStaging + "/" + name +
-                    " -> gs://" + gcsArchive + "/" + name);
+            GCSUtils.gcsMove(gcsStaging, src, gcsArchive, dest);
+            System.out.println("NON_DEPENDENCY_MOVE source=gs://" + gcsStaging + "/" + src +
+                    " -> gs://" + gcsArchive + "/" + dest);
         } catch (Exception e) {
-            System.err.println("Failed moving non-dependency file " + name + ": " + e.getMessage());
+            System.err.println("Failed moving non-dependency file " + src + ": " + e.getMessage());
         }
     }
 }

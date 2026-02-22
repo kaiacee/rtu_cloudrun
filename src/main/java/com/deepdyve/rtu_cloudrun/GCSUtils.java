@@ -38,7 +38,7 @@ public class GCSUtils {
                 storage.delete(source);
                 //System.out.println("Deleting  " + fromBucket + "/" + fromPath );
             } else {
-                System.out.println("UNABLE TO DELETE  " + fromBucket + "/" + fromPath );
+                System.err.println("GCS Move: UNABLE TO DELETE  " + fromBucket + "/" + fromPath );
             }
         } catch (Exception ex) {
             System.err.println("GCS Move: " + ex.getMessage());
