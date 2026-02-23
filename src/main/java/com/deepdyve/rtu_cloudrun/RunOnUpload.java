@@ -56,6 +56,7 @@ public class RunOnUpload implements CloudEventsFunction {
          */
         watches = new ArrayList<>();
         watches.add("aea");
+        watches.add("aip");
         watches.add("acm");
         watches.add("allen_press");
         watches.add("ams");
