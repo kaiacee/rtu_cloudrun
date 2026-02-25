@@ -157,7 +157,10 @@ public class RunOnUpload implements CloudEventsFunction {
                         Dependencies d = watchesWithDependencies.get(datasourcekeyname);
                         if (!isDependencyFile(d, name)) {
                             String dateSuffix = new SimpleDateFormat(ARCHIVEDATEFORMAT).format(new Date());
-                            String pathOnGCS = name.replace("^" + datasourcekeyname, datasourcekeyname + "/" + dateSuffix + "/");
+                            String prefix = datasourcekeyname + "/";
+                            String pathOnGCS = name.startsWith(prefix)
+                                    ? prefix + dateSuffix + "/" + name.substring(prefix.length())
+                                    : name;
                             moveNonDependencyFile(name, pathOnGCS);
                             return;
                         }
