@@ -85,7 +85,7 @@ public class RunOnUpload implements CloudEventsFunction {
         watches.add("eupress");
         watches.add("nejm");
         watches.add("ou_press");
-        watches.add("pmc");
+        //watches.add("pmc"); for new PMC format 20260414 now does not come in gzs but instead comes in xml/pdf pairs
         watches.add("pubmed_ftp");
         watches.add("rsc");
         watches.add("rsna");
@@ -107,6 +107,7 @@ public class RunOnUpload implements CloudEventsFunction {
         watchesWithDependencies.put("jama", new Dependencies('_',"_xml.zip", "_xml.zip", "_pdf.zip"));
         // moved to sagewatchesWithDependencies.put("iospress", new Dependencies('.', ".xml", ".xml", ".pdf"));
         watchesWithDependencies.put("imanager",  new Dependencies('.', ".txt",".txt", ".pdf"));
+        watchesWithDependencies.put("pmc",  new Dependencies('.', ".xml",".xml", ".pdf"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutdown hook triggered: Closing NATS connection...");
