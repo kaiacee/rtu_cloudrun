@@ -107,7 +107,7 @@ public class RunOnUpload implements CloudEventsFunction {
         watchesWithDependencies.put("jama", new Dependencies('_',"_xml.zip", "_xml.zip", "_pdf.zip"));
         // moved to sagewatchesWithDependencies.put("iospress", new Dependencies('.', ".xml", ".xml", ".pdf"));
         watchesWithDependencies.put("imanager",  new Dependencies('.', ".txt",".txt", ".pdf"));
-        watchesWithDependencies.put("pmc",  new Dependencies('.', ".xml",".xml", ".pdf"));
+        watchesWithDependencies.put("pmc",  new Dependencies('.', ".xml", new String[]{".xml"}, ".pdf"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutdown hook triggered: Closing NATS connection...");
@@ -156,7 +156,13 @@ public class RunOnUpload implements CloudEventsFunction {
                     System.out.println("Received: " + name /*+ " type: " + contentType*/ + " size: " + size  /*+ " received"*/);
                     if (watchesWithDependencies.containsKey(datasourcekeyname)){
                         Dependencies d = watchesWithDependencies.get(datasourcekeyname);
-                        if (!isDependencyFile(d, name)) {
+                        if (d.isOptionalFile(name)) {
+                            if (VERBOSE) {
+                                System.out.println("Ignoring optional dependency file: " + name);
+                            }
+                            return;
+                        }
+                        if (!d.isRequiredFile(name)) {
                             String dateSuffix = new SimpleDateFormat(ARCHIVEDATEFORMAT).format(new Date());
                             String prefix = datasourcekeyname + "/";
                             String pathOnGCS = name.startsWith(prefix)
@@ -165,33 +171,37 @@ public class RunOnUpload implements CloudEventsFunction {
                             moveNonDependencyFile(name, pathOnGCS);
                             return;
                         }
-                        String rootKey = d.getRootFile(name); // this is the filename root we need to match
-                        if (VERBOSE) {
-                            System.out.println("Root: " + rootKey);
-                        }
-                        if (rootKey == null) {
-                            System.err.println("RootKey is null for : " + name);
-                            return;
-                        }
-                        if (VERBOSE) {
-                            System.out.printf("Dependencies: %s from %s and %s%n", rootKey, datasourcekeyname, name);
-                        }
-                        Dependencies.addOrUpdateName(ds, rootKey, name);
-                        List<String> foundfiles = Dependencies.listNames(ds, rootKey);
-                        List<String> extensions = new ArrayList<>(d.extensions);
-                        for (String f : foundfiles) {
-                            extensions.removeIf(extension -> f.endsWith(extension));
-                        }
-                        // if don't have required dependency file (via extension match), then wait
-                        if (!extensions.isEmpty()) {
+                        if (d.requiresDatastoreTracking()) {
+                            String rootKey = d.getRootFile(name); // this is the filename root we need to match
                             if (VERBOSE) {
-                                System.out.println("... waiting for: " + rootKey + extensions);
+                                System.out.println("Root: " + rootKey);
                             }
-                            return;
-                        } else {
-                            System.out.println("... Found all dependencies.  Keyfile = " + d.getKeyFile(foundfiles) + "=>" + d.getDependentFile(foundfiles));
-                            name = d.getKeyFile(foundfiles); // ensure message is only for key file
-                            Dependencies.deleteAllNames(ds, rootKey);
+                            if (rootKey == null) {
+                                System.err.println("RootKey is null for : " + name);
+                                return;
+                            }
+                            if (VERBOSE) {
+                                System.out.printf("Dependencies: %s from %s and %s%n", rootKey, datasourcekeyname, name);
+                            }
+                            Dependencies.addOrUpdateName(ds, rootKey, name);
+                            List<String> foundfiles = Dependencies.listNames(ds, rootKey);
+                            List<String> extensions = new ArrayList<>(d.requiredExtensions);
+                            for (String f : foundfiles) {
+                                extensions.removeIf(extension -> f.endsWith(extension));
+                            }
+                            // if don't have required dependency file (via extension match), then wait
+                            if (!extensions.isEmpty()) {
+                                if (VERBOSE) {
+                                    System.out.println("... waiting for: " + rootKey + extensions);
+                                }
+                                return;
+                            } else {
+                                System.out.println("... Found all dependencies.  Keyfile = " + d.getKeyFile(foundfiles) + "=>" + d.getDependentFile(foundfiles));
+                                name = d.getKeyFile(foundfiles); // ensure message is only for key file
+                                Dependencies.deleteAllNames(ds, rootKey);
+                            }
+                        } else if (VERBOSE) {
+                            System.out.println("... Found required keyfile with optional companions: " + name);
                         }
                     }
                     // TODO: ONLY FOR QA-PROD TESTING PURPOSES - IMPORTANT REMOVE WHEN DONE !!!!
@@ -217,18 +227,27 @@ public class RunOnUpload implements CloudEventsFunction {
 
     static class Dependencies {
         String keyFileExtension;
-        ArrayList<String> extensions;
+        ArrayList<String> requiredExtensions;
+        ArrayList<String> optionalExtensions;
         char delimiter;
         static final String maincollection = "watches";
         static final String doccollection = "names";
         static final String namefield = "name";
 
         Dependencies(char delimiter, String keyFileExtension, String... extensions) {
+            this(delimiter, keyFileExtension, extensions, new String[0]);
+        }
+
+        Dependencies(char delimiter, String keyFileExtension, String[] requiredExtensions, String... optionalExtensions) {
             this.delimiter = delimiter;
             this.keyFileExtension = keyFileExtension;
-            this.extensions = new ArrayList<>();
-            for (String extension : extensions) {
-                this.extensions.add(extension);
+            this.requiredExtensions = new ArrayList<>();
+            this.optionalExtensions = new ArrayList<>();
+            for (String extension : requiredExtensions) {
+                this.requiredExtensions.add(extension);
+            }
+            for (String extension : optionalExtensions) {
+                this.optionalExtensions.add(extension);
             }
         }
         String getKeyFile(List<String> files) {
@@ -243,7 +262,7 @@ public class RunOnUpload implements CloudEventsFunction {
         // for debugging
         String getDependentFile(List<String> files) {
             for (String f : files) {
-                if (extensions.stream().anyMatch(f::endsWith)) {
+                if (!f.endsWith(keyFileExtension) && requiredExtensions.stream().anyMatch(f::endsWith)) {
                     return f;
                 }
             }
@@ -268,7 +287,19 @@ public class RunOnUpload implements CloudEventsFunction {
             }
         }
         ArrayList<String> getExtensions(String filename) {
-            return extensions;
+            return requiredExtensions;
+        }
+
+        boolean isRequiredFile(String filename) {
+            return requiredExtensions.stream().anyMatch(filename::endsWith);
+        }
+
+        boolean isOptionalFile(String filename) {
+            return optionalExtensions.stream().anyMatch(filename::endsWith);
+        }
+
+        boolean requiresDatastoreTracking() {
+            return requiredExtensions.size() > 1;
         }
 
         /**
@@ -354,10 +385,6 @@ public class RunOnUpload implements CloudEventsFunction {
                 System.out.printf("No dependency entities found for %s%n", rootKey);
             }
         }
-    }
-
-    private static boolean isDependencyFile(Dependencies d, String filename) {
-        return d.extensions.stream().anyMatch(filename::endsWith);
     }
 
     private static void moveNonDependencyFile( String src, String dest) {
