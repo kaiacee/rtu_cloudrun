@@ -105,9 +105,10 @@ public class RunOnUpload implements CloudEventsFunction {
         watches.add("wspc");
         watchesWithDependencies = new HashMap<>();
         watchesWithDependencies.put("jama", new Dependencies('_',"_xml.zip", "_xml.zip", "_pdf.zip"));
-        // moved to sagewatchesWithDependencies.put("iospress", new Dependencies('.', ".xml", ".xml", ".pdf"));
         watchesWithDependencies.put("imanager",  new Dependencies('.', ".txt",".txt", ".pdf"));
         watchesWithDependencies.put("pmc",  new Dependencies('.', ".xml", new String[]{".xml"}, ".pdf"));
+        watchesWithDependencies.put("project_muse", new Dependencies('_',"_journals_metadata.tar.gz", "_journals_metadata.tar.gz", "_journals_full.tar.gz"));
+        // moved to sage - watchesWithDependencies.put("iospress", new Dependencies('.', ".xml", ".xml", ".pdf"));
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("Shutdown hook triggered: Closing NATS connection...");
