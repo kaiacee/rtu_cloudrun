@@ -39,11 +39,8 @@ if [[ "$eventarc" == "true" ]]; then
 	bucket=rt-upload-staging$bucketSuffix
 fi
 if [[ "$eventarc" != "true"  ]]; then
-	#build docker image - note: cloudrun is amd64
-	docker buildx build --platform linux/amd64 -t $container/dd-production/$repo/$appname:latest -f dockerfiles/Dockerfile$dockertype .
-
-	#push docker image to repository
-	docker push $container/dd-production/$repo/$appname:latest
+	# build and push in one step so deploy always uses the image from this checkout
+	docker buildx build --platform linux/amd64 --push -t $container/dd-production/$repo/$appname:latest -f dockerfiles/Dockerfile$dockertype .
 
 	#deploy cloud run service
 	gcloud run deploy $servicename \
