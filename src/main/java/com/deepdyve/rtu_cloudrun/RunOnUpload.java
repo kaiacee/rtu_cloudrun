@@ -105,7 +105,7 @@ public class RunOnUpload implements CloudEventsFunction {
         watches.add("wspc");
         watchesWithDependencies = new HashMap<>();
         watchesWithDependencies.put("jama", new Dependencies('_',"_xml.zip", "_xml.zip", "_pdf.zip"));
-        watchesWithDependencies.put("imanager",  new Dependencies('.', ".txt",".txt", ".pdf"));
+        watchesWithDependencies.put("imanager",  new Dependencies('.', new String[]{".xml", ".txt"}, new String[]{".xml", ".txt", ".pdf"}));
         watchesWithDependencies.put("pmc",  new Dependencies('.', ".xml", new String[]{".xml"}, ".pdf"));
         watchesWithDependencies.put("project_muse", new Dependencies('_',"_journals_metadata.tar.gz", "_journals_metadata.tar.gz", "_journals_full.tar.gz"));
         // moved to sage - watchesWithDependencies.put("iospress", new Dependencies('.', ".xml", ".xml", ".pdf"));
@@ -186,14 +186,13 @@ public class RunOnUpload implements CloudEventsFunction {
                             }
                             Dependencies.addOrUpdateName(ds, rootKey, name);
                             List<String> foundfiles = Dependencies.listNames(ds, rootKey);
-                            List<String> extensions = new ArrayList<>(d.requiredExtensions);
-                            for (String f : foundfiles) {
-                                extensions.removeIf(extension -> f.endsWith(extension));
-                            }
-                            // if don't have required dependency file (via extension match), then wait
-                            if (!extensions.isEmpty()) {
+                            boolean hasKeyFile = foundfiles.stream().anyMatch(d::isKeyFile);
+                            List<String> extensions = d.getMissingRequiredDependencyExtensions(foundfiles);
+                            // wait until at least one key file exists and all non-key required dependencies are present
+                            if (!hasKeyFile || !extensions.isEmpty()) {
                                 if (VERBOSE) {
-                                    System.out.println("... waiting for: " + rootKey + extensions);
+                                    System.out.println("... waiting for: " + rootKey +
+                                            " hasKey=" + hasKeyFile + " missing=" + extensions);
                                 }
                                 return;
                             } else {
@@ -227,7 +226,7 @@ public class RunOnUpload implements CloudEventsFunction {
     }
 
     static class Dependencies {
-        String keyFileExtension;
+        ArrayList<String> keyFileExtensions;
         ArrayList<String> requiredExtensions;
         ArrayList<String> optionalExtensions;
         char delimiter;
@@ -236,14 +235,21 @@ public class RunOnUpload implements CloudEventsFunction {
         static final String namefield = "name";
 
         Dependencies(char delimiter, String keyFileExtension, String... extensions) {
-            this(delimiter, keyFileExtension, extensions, new String[0]);
+            this(delimiter, new String[]{keyFileExtension}, extensions, new String[0]);
         }
 
         Dependencies(char delimiter, String keyFileExtension, String[] requiredExtensions, String... optionalExtensions) {
+            this(delimiter, new String[]{keyFileExtension}, requiredExtensions, optionalExtensions);
+        }
+
+        Dependencies(char delimiter, String[] keyFileExtensions, String[] requiredExtensions, String... optionalExtensions) {
             this.delimiter = delimiter;
-            this.keyFileExtension = keyFileExtension;
+            this.keyFileExtensions = new ArrayList<>();
             this.requiredExtensions = new ArrayList<>();
             this.optionalExtensions = new ArrayList<>();
+            for (String extension : keyFileExtensions) {
+                this.keyFileExtensions.add(extension);
+            }
             for (String extension : requiredExtensions) {
                 this.requiredExtensions.add(extension);
             }
@@ -252,18 +258,20 @@ public class RunOnUpload implements CloudEventsFunction {
             }
         }
         String getKeyFile(List<String> files) {
-            for (String f : files) {
-                if (f.endsWith(keyFileExtension)) {
-                    return f;
+            for (String keyExtension : keyFileExtensions) {
+                for (String f : files) {
+                    if (f.endsWith(keyExtension)) {
+                        return f;
+                    }
                 }
             }
-            System.err.println("Could not find key file: " + files + " (" + keyFileExtension + ")");
+            System.err.println("Could not find key file: " + files + " (" + keyFileExtensions + ")");
             return null;
         }
         // for debugging
         String getDependentFile(List<String> files) {
             for (String f : files) {
-                if (!f.endsWith(keyFileExtension) && requiredExtensions.stream().anyMatch(f::endsWith)) {
+                if (!isKeyFile(f) && requiredExtensions.stream().anyMatch(f::endsWith)) {
                     return f;
                 }
             }
@@ -293,6 +301,34 @@ public class RunOnUpload implements CloudEventsFunction {
 
         boolean isRequiredFile(String filename) {
             return requiredExtensions.stream().anyMatch(filename::endsWith);
+        }
+
+        boolean isKeyFile(String filename) {
+            return keyFileExtensions.stream().anyMatch(filename::endsWith);
+        }
+
+        boolean isKeyExtension(String extension) {
+            return keyFileExtensions.contains(extension);
+        }
+
+        List<String> getMissingRequiredDependencyExtensions(List<String> files) {
+            List<String> missing = new ArrayList<>();
+            for (String extension : requiredExtensions) {
+                if (isKeyExtension(extension)) {
+                    continue;
+                }
+                boolean found = false;
+                for (String f : files) {
+                    if (f.endsWith(extension)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    missing.add(extension);
+                }
+            }
+            return missing;
         }
 
         boolean isOptionalFile(String filename) {
